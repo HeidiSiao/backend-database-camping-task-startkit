@@ -150,7 +150,6 @@ WHERE user_id = (SELECT id from "USER" where email = 'starplatinum@hexschooltest
 INSERT INTO "SKILL" (name) VALUES ('空中瑜伽');
 DELETE FROM "SKILL" WHERE name = '空中瑜伽';
 
-
 --  ████████  █████   █    █   █ 
 --    █ █   ██    █  █     █   █ 
 --    █ █████ ███ ███      █████ 
@@ -180,8 +179,6 @@ FROM "USER" u
 INNER JOIN "SKILL" s ON s.name = '重訓'
 WHERE u.email = 'lee2000@hexschooltest.io';
 
-
-
 -- ████████  █████   █    █████ 
 --   █ █   ██    █  █     █     
 --   █ █████ ███ ███      ████  
@@ -195,35 +192,11 @@ WHERE u.email = 'lee2000@hexschooltest.io';
         -- 1. 預約人設為`王小明`
         -- 2. 預約時間`booking_at` 設為2024-11-24 16:00:00
         -- 3. 狀態`status` 設定為即將授課
-INSERT INTO "COURSE_BOOKING" (user_id, course_id, booking_at, status)
-SELECT 
-    us.id as user_id,
-    c.id as course_id,
-    '2024-11-24 16:00:00'as booking_at,
-    '即將授課' as status
-FROM "USER" us
-INNER JOIN "COURSE" c ON c.user_id = 
-(SELECT id FROM "USER" WHERE email = 'lee2000@hexschooltest.io')
-WHERE us.email = 'wXlTq@hexschooltest.io'; 
-
----??
-
-INSERT INTO "COURSE_BOOKING" (user_id, course_id, booking_at, status)
-SELECT 
-    us.id as user_id,
-    c.id as course_id,
-    '2024-11-24 16:00:00'as booking_at,
-    '即將授課' as status
-FROM "USER" us
-INNER JOIN "USER" ut ON ut.email = 'lee2000@hexschooltest.io'
-INNER JOIN "COURSE" c ON c.user_id = ut.id 
-WHERE us.email = 'wXlTq@hexschooltest.io'; 
-
-
     -- 2. 新增： `好野人` 預約 `李燕容` 的課程
         -- 1. 預約人設為 `好野人`
         -- 2. 預約時間`booking_at` 設為2024-11-24 16:00:00
         -- 3. 狀態`status` 設定為即將授課
+
 INSERT INTO "COURSE_BOOKING" (user_id, course_id, booking_at, status)
 SELECT 
     us.id as user_id,
@@ -311,53 +284,25 @@ SELECT
     -- on "COURSE_BOOKING".user_id = "CREDIT_PURCHASE".user_id;
 SELECT 
     cpu.user_id,
-    (cpu.total - cb.used) as "remaining_cred"
-FROM
-(
-    SELECT
-    user_id,
-    SUM(cpu.purchased_credits) as "total"
-    FROM "CREDIT_PURCHASE" cpu
-    Group BY user_id
-) as "cpu"
-INNER JOIN 
-(
-    SELECT 
-    user_id,
-    count(*) as "used"
-    FROM "COURSE_BOOKING" cb
-    WHERE join_at IS NOT NULL
-    GROUP BY user_id
-) as "cb"
-ON cpu.user_id = cb.user_id
-INNER JOIN "USER" u ON u.id = cpu.user_id
-WHERE email = 'wXlTq@hexschooltest.io';
-
-
-
-
-
-
-
-SELECT
-    "CREDIT_PURCHASE".user_id,
-    SUM("CREDIT_PURCHASE".purchased_credits)-
-    (
-        SELECT COUNT(*) 
-        FROM "COURSE_BOOKING" 
-        WHERE "COURSE_BOOKING".user_id=
-        (
-            SELECT id 
-            FROM "USER" 
-            WHERE email='wXlTq@hexschooltest.io'
-        ) 
-        AND status!='課程已取消'
-    ) AS remaining_credit
-
-FROM "CREDIT_PURCHASE"
-WHERE user_id=(SELECT id FROM "USER" WHERE email='wXlTq@hexschooltest.io')
-group BY "CREDIT_PURCHASE".user_id;
-
+    (cpu.total - cb.used) as "remaining_credit"
+    FROM (
+        SELECT
+            user_id,
+            SUM(cpu.purchased_credits) as "total"
+        FROM "CREDIT_PURCHASE" cpu
+        Group BY user_id
+    ) as "cpu"
+    INNER JOIN (
+        SELECT 
+            user_id,
+            count(*) as "used"
+        FROM "COURSE_BOOKING" cb
+        WHERE join_at IS NOT NULL
+        GROUP BY user_id
+    ) as "cb"
+    ON cpu.user_id = cb.user_id
+    INNER JOIN "USER" u ON u.id = cpu.user_id
+    WHERE email = 'wXlTq@hexschooltest.io';
 
 -- ████████  █████   █     ███  
 --   █ █   ██    █  █     █     
@@ -394,13 +339,12 @@ LIMIT 1;
 -- 6-3. 查詢：計算 11 月份組合包方案的銷售數量
 -- 顯示須包含以下欄位： 組合包方案名稱, 銷售數量
 SELECT 
-cpa.name as "組合包方案名稱",
-count (*) as "銷售數量"
+    cpa.name as "組合包方案名稱",
+    count (*) as "銷售數量"
 FROM "CREDIT_PURCHASE" cpu
 INNER JOIN "CREDIT_PACKAGE" cpa ON cpa.id = cpu.credit_package_id
 WHERE cpu.purchase_at BETWEEN '2024-12-01 00:00:00' AND '2024-12-31 23:59:59'
 GROUP BY cpa.name;
-
 
 -- 6-4. 查詢：計算 11 月份總營收（使用 purchase_at 欄位統計）
 -- 顯示須包含以下欄位： 總營收
@@ -410,7 +354,7 @@ WHERE cpu.purchase_at BETWEEN '2024-12-01 00:00:00' AND '2024-12-31 23:59:59';
 
 -- 6-5. 查詢：計算 11 月份有預約課程的會員人數（需使用 Distinct，並用 created_at 和 status 欄位統計）
 -- 顯示須包含以下欄位： 預約會員人數
-SELECT COUNT(DISTINCT (user_id)) as "預約會員人數"
+SELECT COUNT(DISTINCT(user_id)) as "預約會員人數"
 FROM "COURSE_BOOKING" cb
 WHERE cb.created_at BETWEEN '2024-12-01 00:00:00' AND '2024-12-31 23:59:59'
 AND cb.status != ('課程已取消');
